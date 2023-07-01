@@ -1,31 +1,22 @@
 ---
-# Source: kube-prometheus-stack/templates/prometheus/prometheus.yaml
 apiVersion: monitoring.coreos.com/v1
 kind: Prometheus
 metadata:
-  name: kube-prometheus-stack-prometheus
+  name: prometheus
   namespace: prometheus
   labels:
-    app: kube-prometheus-stack-prometheus
-    
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/instance: kube-prometheus-stack
-    app.kubernetes.io/version: "45.28.1"
-    app.kubernetes.io/part-of: kube-prometheus-stack
-    chart: kube-prometheus-stack-45.28.1
-    release: "kube-prometheus-stack"
-    heritage: "Helm"
+    app: prometheus
 spec:
   alerting:
     alertmanagers:
       - namespace: prometheus
-        name: kube-prometheus-stack-alertmanager
+        name: alertmanager
         port: http-web
         pathPrefix: "/"
         apiVersion: v2
   image: "quay.io/prometheus/prometheus:v2.42.0"
   version: v2.42.0
-  externalUrl: http://kube-prometheus-stack-prometheus.prometheus:9090
+  externalUrl: http://prometheus.prometheus:9090
   paused: false
   replicas: 1
   shards: 1
@@ -38,7 +29,7 @@ spec:
     outOfOrderTimeWindow: 0s
   walCompression: true
   routePrefix: "/"
-  serviceAccountName: kube-prometheus-stack-prometheus
+  serviceAccountName: prometheus
   serviceMonitorSelector:
     matchLabels:
       release: "kube-prometheus-stack"
@@ -62,24 +53,16 @@ spec:
       release: "kube-prometheus-stack"
   portName: http-web
   hostNetwork: false
+
 ---
-# Source: kube-prometheus-stack/templates/prometheus/service.yaml
 apiVersion: v1
 kind: Service
 metadata:
-  name: kube-prometheus-stack-prometheus
+  name: prometheus
   namespace: prometheus
   labels:
-    app: kube-prometheus-stack-prometheus
+    app: prometheus
     self-monitor: "true"
-    
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/instance: kube-prometheus-stack
-    app.kubernetes.io/version: "45.28.1"
-    app.kubernetes.io/part-of: kube-prometheus-stack
-    chart: kube-prometheus-stack-45.28.1
-    release: "kube-prometheus-stack"
-    heritage: "Helm"
 spec:
   ports:
   - name: http-web
@@ -88,5 +71,55 @@ spec:
   publishNotReadyAddresses: false
   selector:
     app.kubernetes.io/name: prometheus
-    prometheus: kube-prometheus-stack-prometheus
+    prometheus: prometheus
   type: "ClusterIP"
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prometheus
+  namespace: prometheus
+  labels:
+    app: prometheus
+    app.kubernetes.io/name: prometheus
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: prometheus
+  labels:
+    app: prometheus
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: prometheus
+subjects:
+  - kind: ServiceAccount
+    name: prometheus
+    namespace: prometheus
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: prometheus
+  labels:
+    app: prometheus
+rules:
+# This permission are not in the kube-prometheus repo
+# they're grabbed from https://github.com/prometheus/prometheus/blob/master/documentation/examples/rbac-setup.yml
+- apiGroups: [""]
+  resources:
+  - nodes
+  - nodes/metrics
+  - services
+  - endpoints
+  - pods
+  verbs: ["get", "list", "watch"]
+- apiGroups:
+  - "networking.k8s.io"
+  resources:
+  - ingresses
+  verbs: ["get", "list", "watch"]
+- nonResourceURLs: ["/metrics", "/metrics/cadvisor"]
+  verbs: ["get"]

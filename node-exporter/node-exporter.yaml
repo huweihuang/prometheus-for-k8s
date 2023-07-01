@@ -1,25 +1,16 @@
 ---
-# Source: kube-prometheus-stack/charts/prometheus-node-exporter/templates/daemonset.yaml
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: kube-prometheus-stack-prometheus-node-exporter
+  name: prometheus-node-exporter
   namespace: prometheus
   labels:
-    helm.sh/chart: prometheus-node-exporter-4.16.0
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/component: metrics
-    app.kubernetes.io/part-of: prometheus-node-exporter
     app.kubernetes.io/name: prometheus-node-exporter
-    app.kubernetes.io/instance: kube-prometheus-stack
-    app.kubernetes.io/version: "1.5.0"
     jobLabel: node-exporter
-    release: kube-prometheus-stack
 spec:
   selector:
     matchLabels:
       app.kubernetes.io/name: prometheus-node-exporter
-      app.kubernetes.io/instance: kube-prometheus-stack
   updateStrategy:
     rollingUpdate:
       maxUnavailable: 1
@@ -29,15 +20,8 @@ spec:
       annotations:
         cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
       labels:
-        helm.sh/chart: prometheus-node-exporter-4.16.0
-        app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/component: metrics
-        app.kubernetes.io/part-of: prometheus-node-exporter
         app.kubernetes.io/name: prometheus-node-exporter
-        app.kubernetes.io/instance: kube-prometheus-stack
-        app.kubernetes.io/version: "1.5.0"
         jobLabel: node-exporter
-        release: kube-prometheus-stack
     spec:
       automountServiceAccountToken: false
       securityContext:
@@ -45,7 +29,7 @@ spec:
         runAsGroup: 65534
         runAsNonRoot: true
         runAsUser: 65534
-      serviceAccountName: kube-prometheus-stack-prometheus-node-exporter
+      serviceAccountName: prometheus-node-exporter
       containers:
         - name: node-exporter
           image: quay.io/prometheus/node-exporter:v1.5.0
@@ -115,22 +99,14 @@ spec:
             path: /
 
 ---
-# Source: kube-prometheus-stack/charts/prometheus-node-exporter/templates/service.yaml
 apiVersion: v1
 kind: Service
 metadata:
-  name: kube-prometheus-stack-prometheus-node-exporter
+  name: prometheus-node-exporter
   namespace: prometheus
   labels:
-    helm.sh/chart: prometheus-node-exporter-4.16.0
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/component: metrics
-    app.kubernetes.io/part-of: prometheus-node-exporter
     app.kubernetes.io/name: prometheus-node-exporter
-    app.kubernetes.io/instance: kube-prometheus-stack
-    app.kubernetes.io/version: "1.5.0"
     jobLabel: node-exporter
-    release: kube-prometheus-stack
   annotations:
     prometheus.io/scrape: "true"
 spec:
@@ -142,4 +118,12 @@ spec:
       name: http-metrics
   selector:
     app.kubernetes.io/name: prometheus-node-exporter
-    app.kubernetes.io/instance: kube-prometheus-stack
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kube-prometheus-stack-prometheus-node-exporter
+  namespace: prometheus
+  labels:
+    app.kubernetes.io/name: prometheus-node-exporter
+    jobLabel: node-exporter
